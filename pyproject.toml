@@ -24,8 +24,11 @@ dependencies = [
 Homepage = "https://github.com/meemkoo/patalynn/"
 Issues = "https://github.com/meemkoo/patalynn/issues"
 
-[project.scripts]
+[project.gui-scripts]
 patalynn = "patalynn:main"
+
+[project.scripts]
+patalynn_console = "patalynn:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]  # ["."] by default
