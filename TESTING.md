@@ -1,0 +1,1 @@
+When this project eventually gets testing things setup, There will be ABSOLUTELY NO BINARY FILES IN THE SOURCE REPO!!! They will be generated on the fly as needed (image files, video files, etc)
