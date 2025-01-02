@@ -13,7 +13,7 @@ class Config:
     media_pool: Path = ".\\media_pool"
     source_path: Path = ".\\source_pool"
     root: Path = ".\\mroot"
-    manager: str = "apple.apple"
+    manager: str = "patalynn.manager.apple.Apple"
     gui: bool = True
     verbose: bool = False
 
@@ -30,34 +30,34 @@ class Config:
 
 def __error__(): raise AttributeError("Must be overloaded!")
 
-class Manager:
-    _cold: bool
-    events = ["onWarm"]
-    selection: dict
+class Manager: pass
+    # _cold: bool
+    # events = ["onWarm"]
+    # selection: dict
 
-    def __init__(self) -> None: __error__()
+    # def __init__(self) -> None: __error__()
 
-    def add_event_hook(self, name, func): __error__()
+    # def add_event_hook(self, name, func): __error__()
 
-    def trigger_event(self, name, *args, **kwargs): __error__()
+    # def trigger_event(self, name, *args, **kwargs): __error__()
 
-    def tag(self) -> None: __error__()
+    # def tag(self) -> None: __error__()
 
-    def deltag(self) -> None: __error__()
+    # def deltag(self) -> None: __error__()
 
-    async def sync(self) -> None: __error__()
+    # async def sync(self) -> None: __error__()
 
-    def switch_media(self, dir: Literal[-1, 1]=1) -> None: __error__()
+    # def switch_media(self, dir: Literal[-1, 1]=1) -> None: __error__()
 
-    def goto_media(self, id: str | int) -> None: __error__()
+    # def goto_media(self, id: str | int) -> None: __error__()
 
-    def tag(self, tag) -> None: __error__()
+    # def tag(self, tag) -> None: __error__()
 
-    def current(self) -> Path: __error__()
+    # def current(self) -> Path: __error__()
 
 
 _registered_managers = {}
-def registered_manager(name):
+def registered_manager(name: str):
     def inner(cls):
         _registered_managers.update({name: cls})
         return cls

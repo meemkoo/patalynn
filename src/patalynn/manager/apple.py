@@ -123,19 +123,6 @@ class Apple(Manager):
 
         return year, month, raw_id, tags, mime, stage_ftype, zestid, file_hash
 
-    def __filter_by(self, fil: callable):
-        e = self.refreshed_state
-
-        def fun(variable):
-            try:
-                assert fil(variable[1])
-                return True
-            except Exception as err:
-                return False
-
-        out = {c[0]: c[1] for c in list(filter(fun, e.items()))}
-        return out
-
 
     def _open_catalog_file(self):
         """ Name could be considered misleading,\n
@@ -268,7 +255,8 @@ class Apple(Manager):
         self.goto_media(self.selection_pointer)
 
     def current(self):
-        return Path(self.selection["file_path"])
+        return self.selection
+
 
     def tag(self, tag: str, data=None):
         """ Adds `tag` with its `data` to the current selection. \n

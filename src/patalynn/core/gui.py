@@ -103,10 +103,6 @@ class Player:
         self.status[item] = value
         self.statusunclean = True
 
-    def _inspection(self, _):
-        print(psutil.cpu_percent())
-        print(psutil.virtual_memory())
-
 
     def events(self):
         self.root.bind('<space>', self.onPlayPause)
@@ -116,8 +112,6 @@ class Player:
         self.root.bind('<Up>', self.onVolume)
         self.root.bind('<Down>', self.onVolume)
         self.root.bind('<s>', lambda _: self.tasks.append(self.loop.create_task(self.backend.sync())))
-
-        self.root.bind('<p>', self._inspection)
 
         self.root.bind('<Shift-Left>', lambda _: self.onSwitch(_, -1))
         self.root.bind('<Shift-Right>', lambda _: self.onSwitch(_, 1))
