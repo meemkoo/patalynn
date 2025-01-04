@@ -13,7 +13,7 @@ from threading import Thread
 
 from typing import Literal, Any, Callable
 
-from ..managetkeventdata import ProxyBuilder, bind, event_generate
+from multiprocessing import Queue
 
 
 hottagkeymap = {
@@ -27,14 +27,14 @@ class Player:
         self.root = parent
         self.debug = debug
 
-        self._pb = ProxyBuilder(self.root)
-
         self.videoLength = 0
         self.fullScreenState = False
         self.muted = False
         self.playing = False
         self.status = {}
         self.statusunclean = True
+
+        self.queue = Queue()
 
         self.init_vlc()
         self.init_widgets()
@@ -106,40 +106,41 @@ class Player:
         self.statusunclean = True
 
     def future(self, work_callback: Callable, on_finished: Callable):
+        (
+        # class ProxyWrapper:
+        #     @staticmethod
+        #     def gen():
+        #         self.root.event_generate(f"<<event1>>", when="tail", state=123)
+
+        # proxy = self._pb.proxy(ProxyWrapper())
+
+        # import time
         # def work():
         #     work_callback()
-        #     self.root.event_generate(f"<<{work_callback.__name__}-end>>", when="tail", state="Test")
+        #     time.sleep(3)
+        #     proxy.gen()
 
         # def wrapper():
-        #     t = Thread(target=work)
-        #     t.daemon = True
+        #     t = Thread(target=work, daemon=True)
+        #     # t.daemon = True
         #     t.start()
+        #     # t.join()
 
-        # self.root.bind(f"<<{work_callback.__name__}-end>>", on_finished)
+        # bind(self.root, f"<<event1>>", on_finished) # self.root.bind(root, f"<<event1>>", on_finished)
         # return wrapper
-
-    
-        class ProxyWrapper:
-            @staticmethod
-            def gen():
-                self.root.event_generate(f"<<event1>>", when="tail", state=123)
-
-        proxy = self._pb.proxy(ProxyWrapper())
-
-        import time
+        )
+        event_name = work_callback.__name__
         def work():
-            work_callback()
-            time.sleep(3)
-            proxy.gen()
+            output = work_callback()
+            self.queue.put([on_finished, output])
 
         def wrapper():
             t = Thread(target=work, daemon=True)
-            # t.daemon = True
             t.start()
             # t.join()
 
-        bind(self.root, f"<<event1>>", on_finished) # self.root.bind(root, f"<<event1>>", on_finished)
         return wrapper
+        
 
 
     def events(self):
@@ -253,6 +254,12 @@ class Player:
     def mainloop(self):
         while True:
             self.root.update()
+
+            while self.queue.qsize():
+                if not self.queue.empty():
+                    ev = self.queue.get(0)
+                    ev[0]()
+
             if self.statusunclean:
                 text = ', '.join([f"{k}: {v}" for k,v in self.status.items()])
                 self.status_label.config(text=text)
