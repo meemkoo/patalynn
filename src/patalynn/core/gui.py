@@ -103,7 +103,7 @@ class Player:
 
 
     def update_status(self, item, value):
-        self.status[item] = value
+        self.status[item] = value#
         self.statusunclean = True
 
     def future(self, 
