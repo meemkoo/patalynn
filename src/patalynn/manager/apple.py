@@ -72,6 +72,9 @@ class Apple(Manager):
         self._catalog_meta = None
         self._cold = True
 
+    def is_sunk(self):
+        return not self._cold
+
     @property
     def selection_pointer(self) -> int:
         return self._selection_pointer
@@ -229,6 +232,8 @@ class Apple(Manager):
         #     self.goto_media(self.selection_pointer)
             self._cold = False
             # self.trigger_event("onWarm")
+        time.sleep(5)
+        return "Done"
 
     def set_selection(self, id: str | int):
         if isinstance(id, str):

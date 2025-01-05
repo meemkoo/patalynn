@@ -15,6 +15,8 @@ from typing import Literal, Any, Callable
 
 from multiprocessing import Queue
 
+from copy import deepcopy, copy
+
 
 hottagkeymap = {
     "L": "reviewlater"
@@ -36,11 +38,13 @@ class Player:
 
         self.queue = Queue()
 
+        self._ref = {}
+
         self.init_vlc()
         self.init_widgets()
         self.events()
 
-        self.update_status("Manager", "No")
+        self.update_status("Manager", "Awaiting sync")
 
     def init_vlc(self):
         self.vlcInstance: vlc.Instance = vlc.Instance()#["--aout=waveout"])
@@ -52,7 +56,7 @@ class Player:
         self.video_canvas = tk.Canvas(self.videoPanel, height=300, width=300, bg='#000000', highlightthickness=0)
 
         #Add image to the Canvas Items
-        self.video_canvas.create_image(0,0,anchor=tk.SW,image=ImageTk.PhotoImage(Image.open("resources/loading.png")))
+        self.video_canvas.create_image(0,0,anchor=tk.NW,image=ImageTk.PhotoImage(Image.open("resources/loading.png")))
 
         self.video_canvas.pack(fill="both", expand=1)
         self.videoPanel.pack(fill="both", expand=1)
@@ -86,9 +90,9 @@ class Player:
 
         f = tk.Menu(m, tearoff=0)
         f.add_command(label="New", command=donothing)
-        f.add_command(label="Sync Manager", 
-                      command=self.future(self.backend.sync,
-                                          lambda _: print(_)))
+        f.add_command(
+            label="Sync Manager", 
+            command=self.future(self.backend.sync, self.onBackendTasks))
 
 
         e = tk.Menu(m, tearoff=0)
@@ -105,7 +109,8 @@ class Player:
         self.status[item] = value
         self.statusunclean = True
 
-    def future(self, work_callback: Callable, on_finished: Callable):
+    def future(self, 
+               work_callback, generator_func):
         (
         # class ProxyWrapper:
         #     @staticmethod
@@ -129,16 +134,18 @@ class Player:
         # bind(self.root, f"<<event1>>", on_finished) # self.root.bind(root, f"<<event1>>", on_finished)
         # return wrapper
         )
-        event_name = work_callback.__name__
+        tasks = generator_func()
+        name = f"__{id(work_callback)}_{hash(work_callback)}_{work_callback.__name__}__"
         def work():
             output = work_callback()
-            self.queue.put([on_finished, output])
+            f = lambda: tasks.send(output)
+            self._ref.update({name: f})
+            self.queue.put((name, output))
 
         def wrapper():
+            next(tasks)
             t = Thread(target=work, daemon=True)
             t.start()
-            # t.join()
-
         return wrapper
         
 
@@ -150,8 +157,8 @@ class Player:
         self.root.bind('<m>', self.onMuteUnmute)
         self.root.bind('<Up>', self.onVolume)
         self.root.bind('<Down>', self.onVolume)
-        self.root.bind('<s>', self.future(self.backend.sync,
-                                          lambda _: print(_)))
+        # self.root.bind('<s>', self.future(self.backend.sync,
+        #                                   lambda _: print(_)))
 
         self.root.bind('<Shift-Left>', lambda _: self.onSwitch(_, -1))
         self.root.bind('<Shift-Right>', lambda _: self.onSwitch(_, 1))
@@ -178,10 +185,16 @@ class Player:
             self.backend.deltag(name)
         self.tag_bar.config(text=c)
 
-    def onBackendReady(self):
-        self.video = self.backend.current()
-        self._reset(self.video)
-        self.tag_bar.config(text=self.backend.selection["tags"])
+    def onBackendTasks(self):
+        self.update_status("Manager", "Loading...")
+        event_data = yield
+        print(event_data)
+        # self.video = self.backend.current()
+        # self._reset(self.video)
+        # self.tag_bar.config(text=self.backend.selection["tags"])
+        self.update_status("Manager", "Ready!")
+        yield
+        # return
 
     def onScrub(self, e):
         # v = self.mediaPlayer.audio_get_volume()
@@ -255,10 +268,10 @@ class Player:
         while True:
             self.root.update()
 
-            while self.queue.qsize():
-                if not self.queue.empty():
-                    ev = self.queue.get(0)
-                    ev[0]()
+            # while self.queue.qsize():
+            if not self.queue.empty():
+                ev = self.queue.get(False)
+                self._ref[ev[0]]() # TODO: Make this something thats not just a dict
 
             if self.statusunclean:
                 text = ', '.join([f"{k}: {v}" for k,v in self.status.items()])
@@ -273,4 +286,3 @@ def gmain(debug: bool=False):
     player = Player(tk.Tk(), manager(conf), debug=debug)
     player.mainloop()
 
-    # print("Info: all asyncio/threading is over")
