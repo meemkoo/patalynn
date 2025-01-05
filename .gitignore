@@ -173,6 +173,8 @@ cython_debug/
 *.pyc
 .venv/*
 
-olds/*
+old1/
 test1/*
+*.bin
+*.png
 

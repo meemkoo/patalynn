@@ -1,3 +1,6 @@
+# Copyright (C) 2025  Arsenic Vapor
+# patalynn is a file viewer/manager targeted for use with iOS media dumps
+
 from .. import __version__
 from ..manager import Manager, get_manager, Config
 
@@ -52,9 +55,6 @@ class Player:
         self.videoPanel = tk.Frame(self.root)
         self.video_canvas = tk.Canvas(self.videoPanel, height=300, width=300, bg='#000000', highlightthickness=0)
 
-        #Add image to the Canvas Items
-        self.video_canvas.create_image(0,0,anchor=tk.NW,image=ImageTk.PhotoImage(Image.open("resources/loading.png")))
-
         self.video_canvas.pack(fill="both", expand=1)
         self.videoPanel.pack(fill="both", expand=1)
         
@@ -77,13 +77,18 @@ class Player:
         def about():
             filewin = tk.Toplevel(self.root)
             filewin.title("About")
-            text = tk.Label(filewin, text="https://github.com/meemkoo", fg="blue", cursor="hand2")
-            text.bind("<Button-1>", lambda _: webbrowser.open("https://github.com/meemkoo"))
             filewin.bind('<Key>', lambda e: filewin.destroy() if e.keysym == "Escape" else None)
-            text.pack(padx=20, pady=12)
             filewin.resizable(0,0)
             filewin.focus_force()
             filewin.transient(self.root)
+
+            text1 = tk.Label(filewin, text="https://github.com/meemkoo", fg="blue", cursor="hand2")
+            text1.bind("<Button-1>", lambda _: webbrowser.open("https://github.com/meemkoo"))
+            text1.pack(padx=20, pady=12)
+
+            text2 = tk.Label(filewin, text="", fg="blue", cursor="hand2")
+            text2.bind("<Button-1>", lambda _: webbrowser.open("https://github.com/meemkoo"))
+            text2.pack(padx=20, pady=12)
 
         f = tk.Menu(m, tearoff=0)
         f.add_command(label="New", command=donothing)
