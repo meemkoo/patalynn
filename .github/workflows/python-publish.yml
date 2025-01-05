@@ -73,7 +73,7 @@ name: Upload to PyPi
 
 on:
   release:
-    types: [created]
+    types: [published]
 
 jobs:
   pypi-publish:
