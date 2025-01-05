@@ -108,29 +108,6 @@ class Player:
 
     def future(self, 
                work_callback, generator_func):
-        (
-        # class ProxyWrapper:
-        #     @staticmethod
-        #     def gen():
-        #         self.root.event_generate(f"<<event1>>", when="tail", state=123)
-
-        # proxy = self._pb.proxy(ProxyWrapper())
-
-        # import time
-        # def work():
-        #     work_callback()
-        #     time.sleep(3)
-        #     proxy.gen()
-
-        # def wrapper():
-        #     t = Thread(target=work, daemon=True)
-        #     # t.daemon = True
-        #     t.start()
-        #     # t.join()
-
-        # bind(self.root, f"<<event1>>", on_finished) # self.root.bind(root, f"<<event1>>", on_finished)
-        # return wrapper
-        )
         tasks = generator_func()
         name = f"__{id(work_callback)}_{hash(work_callback)}_{work_callback.__name__}__"
         def work():
