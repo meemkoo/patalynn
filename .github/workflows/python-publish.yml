@@ -25,13 +25,14 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: "3.12"
 
       - name: Build release distributions
         run: |
           # NOTE: put your own distribution build steps here.
-          python -m pip install build
-          python -m build
+          python3 -m pip install --upgrade pip
+          python3 -m pip install build setuptools
+          python3 -m build
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
