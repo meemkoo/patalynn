@@ -5,9 +5,9 @@ licencestring = """# Copyright (C) 2025  Arsenic Vapor
 # patalynn is a file viewer/manager targeted for use with iOS media dumps
 """
 
-import toml, sys, os
+import toml, os
 
-pyproject = toml.load(sys.argv[1])
+pyproject = toml.load("pyproject.toml")
 where = pyproject["tool"]["setuptools"]["packages"]["find"]["where"]
 
 sources = []
@@ -23,10 +23,7 @@ for file in sources:
         if len(text) > 0:
             if "Copyright (C) 2025  Arsenic Vapor" in text.splitlines()[0]:
                 continue
-    
 
     with open(file, 'w') as wf:
         text = f"{licencestring}\n{text}"
         wf.write(text)
-
-pass

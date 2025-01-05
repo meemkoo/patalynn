@@ -55,9 +55,6 @@ class Player:
         self.videoPanel = tk.Frame(self.root)
         self.video_canvas = tk.Canvas(self.videoPanel, height=300, width=300, bg='#000000', highlightthickness=0)
 
-        #Add image to the Canvas Items
-        self.video_canvas.create_image(0,0,anchor=tk.NW,image=ImageTk.PhotoImage(Image.open("resources/loading.png")))
-
         self.video_canvas.pack(fill="both", expand=1)
         self.videoPanel.pack(fill="both", expand=1)
         

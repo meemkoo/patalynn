@@ -175,4 +175,6 @@ cython_debug/
 
 old1/
 test1/*
+*.bin
+*.png
 
