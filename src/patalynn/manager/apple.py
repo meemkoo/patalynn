@@ -232,8 +232,8 @@ class Apple(Manager):
         #     self.goto_media(self.selection_pointer)
             self._cold = False
             # self.trigger_event("onWarm")
-        time.sleep(5)
-        return "Done"
+        time.sleep(5) # Pretend its a really big catalog file
+        return "ok"
 
     def set_selection(self, id: str | int):
         if isinstance(id, str):

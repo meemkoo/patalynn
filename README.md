@@ -4,7 +4,7 @@
 * LOGGING!!!
 * Create a better (And stable!) Extension api (I honestly dont know what I was thinking with `switch_media()`)
 * Following the above item, make the Manager class have less resposibilities
-* Stop being lazy and get ride of the first-person pronouns in documentation such as this readme. The smiley faces stay though, profesionalisim be dammed.
+* Stop being lazy and get rid of the first-person pronouns in documentation such as this readme. The smiley faces stay though, profesionalisim be dammed.
 
 A file viewer/manager targeted for use with iOS media dumps. 
 Features

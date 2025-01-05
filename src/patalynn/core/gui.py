@@ -1,11 +1,10 @@
 from .. import __version__
+from ..manager import Manager, get_manager, Config
 
 import tkinter as tk
-from tkinter import ttk
 from PIL import Image, ImageTk
 import os
 import vlc
-from ..manager import Manager, get_manager, Config
 from pathlib import Path
 import webbrowser
 import sys
@@ -14,8 +13,6 @@ from threading import Thread
 from typing import Literal, Any, Callable
 
 from multiprocessing import Queue
-
-from copy import deepcopy, copy
 
 
 hottagkeymap = {
@@ -52,7 +49,7 @@ class Player:
         self.mediaPlayer.pause()
 
     def init_widgets(self):
-        self.videoPanel = ttk.Frame(self.root)
+        self.videoPanel = tk.Frame(self.root)
         self.video_canvas = tk.Canvas(self.videoPanel, height=300, width=300, bg='#000000', highlightthickness=0)
 
         #Add image to the Canvas Items
@@ -148,7 +145,8 @@ class Player:
             t.start()
         return wrapper
         
-
+    def requires_state(self, variable: bool):
+        pass
 
     def events(self):
         self.root.bind('<space>', self.onPlayPause)
