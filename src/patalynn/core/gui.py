@@ -1,19 +1,18 @@
 from .. import __version__
+from ..manager import Manager, get_manager, Config
 
 import tkinter as tk
-from tkinter import ttk
 from PIL import Image, ImageTk
 import os
 import vlc
-from ..manager import Manager, get_manager, Config
 from pathlib import Path
 import webbrowser
-import psutil
 import sys
+from threading import Thread
 
-import asyncio
+from typing import Literal, Any, Callable
 
-from typing import Literal
+from multiprocessing import Queue
 
 
 hottagkeymap = {
@@ -22,11 +21,10 @@ hottagkeymap = {
 
 
 class Player:
-    def __init__(self, parent: tk.Tk, backend: Manager, loop: asyncio.AbstractEventLoop, debug=False):
+    def __init__(self, parent: tk.Tk, backend: Manager, debug=False):
         self.backend = backend
         self.root = parent
         self.debug = debug
-        self.loop = loop
 
         self.videoLength = 0
         self.fullScreenState = False
@@ -35,13 +33,15 @@ class Player:
         self.status = {}
         self.statusunclean = True
 
+        self.queue = Queue()
+
+        self._ref = {}
+
         self.init_vlc()
         self.init_widgets()
         self.events()
 
-        self.update_status("Manager", "No")
-
-        self.tasks: list[asyncio.Task] = [loop.create_task(self.mainloop(1/120))]
+        self.update_status("Manager", "Awaiting sync")
 
     def init_vlc(self):
         self.vlcInstance: vlc.Instance = vlc.Instance()#["--aout=waveout"])
@@ -49,11 +49,11 @@ class Player:
         self.mediaPlayer.pause()
 
     def init_widgets(self):
-        self.videoPanel = ttk.Frame(self.root)
+        self.videoPanel = tk.Frame(self.root)
         self.video_canvas = tk.Canvas(self.videoPanel, height=300, width=300, bg='#000000', highlightthickness=0)
 
         #Add image to the Canvas Items
-        self.video_canvas.create_image(0,0,anchor=tk.SW,image=ImageTk.PhotoImage(Image.open("resources/loading.png")))
+        self.video_canvas.create_image(0,0,anchor=tk.NW,image=ImageTk.PhotoImage(Image.open("resources/loading.png")))
 
         self.video_canvas.pack(fill="both", expand=1)
         self.videoPanel.pack(fill="both", expand=1)
@@ -87,7 +87,9 @@ class Player:
 
         f = tk.Menu(m, tearoff=0)
         f.add_command(label="New", command=donothing)
-        f.add_command(label="Sync Manager", command=self.backend.sync)
+        f.add_command(
+            label="Sync Manager", 
+            command=self.future(self.backend.sync, self.onBackendTasks))
 
 
         e = tk.Menu(m, tearoff=0)
@@ -99,14 +101,52 @@ class Player:
 
         self.root.config(menu=m)
 
+
     def update_status(self, item, value):
         self.status[item] = value
         self.statusunclean = True
 
-    def _inspection(self, _):
-        print(psutil.cpu_percent())
-        print(psutil.virtual_memory())
+    def future(self, 
+               work_callback, generator_func):
+        (
+        # class ProxyWrapper:
+        #     @staticmethod
+        #     def gen():
+        #         self.root.event_generate(f"<<event1>>", when="tail", state=123)
 
+        # proxy = self._pb.proxy(ProxyWrapper())
+
+        # import time
+        # def work():
+        #     work_callback()
+        #     time.sleep(3)
+        #     proxy.gen()
+
+        # def wrapper():
+        #     t = Thread(target=work, daemon=True)
+        #     # t.daemon = True
+        #     t.start()
+        #     # t.join()
+
+        # bind(self.root, f"<<event1>>", on_finished) # self.root.bind(root, f"<<event1>>", on_finished)
+        # return wrapper
+        )
+        tasks = generator_func()
+        name = f"__{id(work_callback)}_{hash(work_callback)}_{work_callback.__name__}__"
+        def work():
+            output = work_callback()
+            f = lambda: tasks.send(output)
+            self._ref.update({name: f})
+            self.queue.put((name, output))
+
+        def wrapper():
+            next(tasks)
+            t = Thread(target=work, daemon=True)
+            t.start()
+        return wrapper
+        
+    def requires_state(self, variable: bool):
+        pass
 
     def events(self):
         self.root.bind('<space>', self.onPlayPause)
@@ -115,9 +155,8 @@ class Player:
         self.root.bind('<m>', self.onMuteUnmute)
         self.root.bind('<Up>', self.onVolume)
         self.root.bind('<Down>', self.onVolume)
-        self.root.bind('<s>', lambda _: self.tasks.append(self.loop.create_task(self.backend.sync())))
-
-        self.root.bind('<p>', self._inspection)
+        # self.root.bind('<s>', self.future(self.backend.sync,
+        #                                   lambda _: print(_)))
 
         self.root.bind('<Shift-Left>', lambda _: self.onSwitch(_, -1))
         self.root.bind('<Shift-Right>', lambda _: self.onSwitch(_, 1))
@@ -126,10 +165,10 @@ class Player:
             self.root.bind(f"<{k}>", lambda _: self.onHotTag(v))
             self.root.bind(f"<Shift-{k}>", lambda _: self.onHotTag(v, True))
 
-        self.root.protocol('WM_DELETE_WINDOW', lambda _=0: self.loop.create_task(self.exit()))
+        self.root.protocol('WM_DELETE_WINDOW', self.exit)
 
 
-        self.backend.add_event_hook("onWarm", self.onBackendReady)
+        # self.backend.add_event_hook("onWarm", self.onBackendReady)
 
     def onHotTag(self, name, delete=False):
         if not delete:
@@ -144,10 +183,16 @@ class Player:
             self.backend.deltag(name)
         self.tag_bar.config(text=c)
 
-    def onBackendReady(self):
-        self.video = self.backend.current()
-        self._reset(self.video)
-        self.tag_bar.config(text=self.backend.selection["tags"])
+    def onBackendTasks(self):
+        self.update_status("Manager", "Loading...")
+        event_data = yield
+        print(event_data)
+        # self.video = self.backend.current()
+        # self._reset(self.video)
+        # self.tag_bar.config(text=self.backend.selection["tags"])
+        self.update_status("Manager", "Ready!")
+        yield
+        # return
 
     def onScrub(self, e):
         # v = self.mediaPlayer.audio_get_volume()
@@ -186,8 +231,8 @@ class Player:
 
     def onSwitch(self, e=None, dir: Literal[-1, 1]=1):
         if not self.backend._cold:
-            self.backend.switch_media(dir)
-            self.video = self.backend.current()
+            # self.backend.switch_media(dir)
+            # self.video = self.backend.current()
             self._reset(self.video)
             self.tag_bar.config(text=self.backend.selection["tags"])
         else:
@@ -204,34 +249,38 @@ class Player:
         self.mediaPlayer.set_position(0.0)
         self.playing = False
 
-    async def exit(self):
+    def exit(self):
         print("Info: Closing and syncing")
         self.mediaPlayer.stop()
         self.vlcInstance = None
         self.root.quit()
         # self.tasks.append(self.loop.create_task(self.backend.sync())) # Perchance this will be something else
         # for task in self.tasks:
-        await self.loop.create_task(self.backend.sync())
         # self.loop.run_until_complete()
         # self.loop.
         # asyncio.wait_for()
-        self.loop.stop()
+        # self.loop.stop()
         self.root.destroy()
 
-    async def mainloop(self, i):
+    def mainloop(self):
         while True:
             self.root.update()
+
+            # while self.queue.qsize():
+            if not self.queue.empty():
+                ev = self.queue.get(False)
+                self._ref[ev[0]]() # TODO: Make this something thats not just a dict
+
             if self.statusunclean:
                 text = ', '.join([f"{k}: {v}" for k,v in self.status.items()])
                 self.status_label.config(text=text)
                 self.statusunclean = False
-            await asyncio.sleep(i)
 
 
 def gmain(debug: bool=False):
     conf = Config.from_file(path=Path(f"{sys.argv[1]}/config.json"))
     manager = get_manager(conf.manager)
-    loop = asyncio.get_event_loop()
-    player = Player(tk.Tk(), manager(conf), loop=loop, debug=debug)
-    loop.run_forever()
-    print("Info: all asyncio/threading is over")
+
+    player = Player(tk.Tk(), manager(conf), debug=debug)
+    player.mainloop()
+
