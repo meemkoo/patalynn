@@ -1,10 +1,10 @@
 # TODO
 * Make all the markdown files look nicer
-* Find a better way to do asyncio or threading then "spam `await asyncio.sleep()` in every loop ever as to not block the gui"
 * LOGGING!!!
 * Create a better (And stable!) Extension api (I honestly dont know what I was thinking with `switch_media()`)
 * Following the above item, make the Manager class have less resposibilities
 * Stop being lazy and get rid of the first-person pronouns in documentation such as this readme. The smiley faces stay though, profesionalisim be dammed.
+* Better end user install process
 
 A file viewer/manager targeted for use with iOS media dumps. 
 Features
@@ -14,9 +14,8 @@ Features
 * Mass lossy compress your files using ffmpeg because Apple
 
 # Installation and usage
-Will probably get on PyPi soon so you can use `pip install patalynn` in the future.
-For now the releases should be configured with a `.whl` file
-
+`pip install patalynn`
+For evironments where pip gets angry at you because of an external package manager, its planned to have an installation other than pip for linux and windows. (Pyinstaller?)
 ## Usage
 `patalynn path/to/your/media/dump/directory`
 
