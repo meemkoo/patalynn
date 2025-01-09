@@ -1,7 +1,7 @@
 # Copyright (C) 2025  Arsenic Vapor
 # patalynn is a file viewer/manager targeted for use with iOS media dumps
 
-from .. import __version__, __licence_path__
+from .. import __version__, __licence__
 from ..manager import Manager, get_manager, Config
 
 import tkinter as tk
@@ -53,6 +53,7 @@ class Player:
         self.mediaPlayer.pause()
 
     def init_widgets(self):
+        """ No like seriously this function is doing too much """
         self.videoPanel = tk.Frame(self.root)
         self.video_canvas = tk.Canvas(self.videoPanel, height=300, width=300, bg='#000000', highlightthickness=0)
 
@@ -83,12 +84,37 @@ class Player:
             filewin.focus_force()
             filewin.transient(self.root)
 
+            lshown = [False]
+            h = tk.Scrollbar(filewin, orient = 'horizontal')
+            # h.pack(side = tk.BOTTOM, fill = tk.X)
+            v = tk.Scrollbar(filewin)
+            # v.pack(side = tk.RIGHT, fill = tk.Y)
+            t = tk.Text(filewin, wrap = tk.NONE,
+                    xscrollcommand = h.set, 
+                    yscrollcommand = v.set)
+            t.insert(1.0, __licence__)
+            t.config(state=tk.DISABLED)
+            # t.pack(side=tk.TOP, fill=tk.X)
+            h.config(command=t.xview)
+            v.config(command=t.yview)
+
+            def toggle():
+                lshown[0] = not lshown[0]
+                if lshown[0]:
+                    h.pack_forget()
+                    v.pack_forget()
+                    t.pack_forget()
+                else:
+                    h.pack(side = tk.BOTTOM, fill = tk.X)
+                    v.pack(side = tk.RIGHT, fill = tk.Y)
+                    t.pack(side=tk.TOP, fill=tk.X)
+
             text1 = tk.Label(filewin, text="https://github.com/meemkoo", fg="blue", cursor="hand2")
             text1.bind("<Button-1>", lambda _: webbrowser.open("https://github.com/meemkoo"))
             text1.pack(padx=20, pady=12)
 
-            text2 = tk.Label(filewin, text=f"file:///{Path(__licence_path__).absolute()}", fg="blue", cursor="hand2")
-            text2.bind("<Button-1>", lambda _: webbrowser.open(f"file:///{Path(__licence_path__).absolute()}"))
+            text2 = tk.Label(filewin, text=f"Licence", fg="blue", cursor="hand2")
+            text2.bind("<Button-1>", lambda _: toggle())
             text2.pack(padx=20, pady=12)
 
         f = tk.Menu(m, tearoff=0)
