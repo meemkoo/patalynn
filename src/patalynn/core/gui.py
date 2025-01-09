@@ -1,7 +1,7 @@
 # Copyright (C) 2025  Arsenic Vapor
 # patalynn is a file viewer/manager targeted for use with iOS media dumps
 
-from .. import __version__
+from .. import __version__, __licence_path__
 from ..manager import Manager, get_manager, Config
 
 import tkinter as tk
@@ -13,7 +13,7 @@ import webbrowser
 import sys
 from threading import Thread
 
-from typing import Literal, Any, Callable
+from typing import Literal, Any, Callable, Generator
 
 from multiprocessing import Queue
 
@@ -36,7 +36,8 @@ class Player:
         self.status = {}
         self.statusunclean = True
 
-        self.queue = Queue()
+        self._done_queue = Queue()
+        self._running_tasks = {}
 
         self._ref = {}
 
@@ -86,8 +87,8 @@ class Player:
             text1.bind("<Button-1>", lambda _: webbrowser.open("https://github.com/meemkoo"))
             text1.pack(padx=20, pady=12)
 
-            text2 = tk.Label(filewin, text="", fg="blue", cursor="hand2")
-            text2.bind("<Button-1>", lambda _: webbrowser.open("https://github.com/meemkoo"))
+            text2 = tk.Label(filewin, text=f"file:///{Path(__licence_path__).absolute()}", fg="blue", cursor="hand2")
+            text2.bind("<Button-1>", lambda _: webbrowser.open(f"file:///{Path(__licence_path__).absolute()}"))
             text2.pack(padx=20, pady=12)
 
         f = tk.Menu(m, tearoff=0)
@@ -112,18 +113,20 @@ class Player:
         self.statusunclean = True
 
     def future(self, 
-               work_callback, generator_func):
-        tasks = generator_func()
+               work_callback, task_generator):
+        tasks: Generator = task_generator()
         name = f"__{id(work_callback)}_{hash(work_callback)}_{work_callback.__name__}__"
         def work():
             output = work_callback()
             f = lambda: tasks.send(output)
             self._ref.update({name: f})
-            self.queue.put((name, output))
+            self._done_queue.put((name, output))
+            self._running_tasks.pop(name)
 
         def wrapper():
             next(tasks)
-            t = Thread(target=work, daemon=True)
+            self._running_tasks.update({name})
+            t = Thread(target=work)
             t.start()
         return wrapper
         
@@ -151,6 +154,7 @@ class Player:
 
 
         # self.backend.add_event_hook("onWarm", self.onBackendReady)
+
 
     def onHotTag(self, name, delete=False):
         if not delete:
@@ -220,6 +224,7 @@ class Player:
         else:
             self.update_status("Error", "initialize backend")
 
+
     def _reset(self, path):
         self.mediaPlayer.set_hwnd(self.panelid) # May not be neccesary
         if Path(path).exists():
@@ -235,22 +240,16 @@ class Player:
         print("Info: Closing and syncing")
         self.mediaPlayer.stop()
         self.vlcInstance = None
+        while self._running_tasks: pass # TODO: Make this better
         self.root.quit()
-        # self.tasks.append(self.loop.create_task(self.backend.sync())) # Perchance this will be something else
-        # for task in self.tasks:
-        # self.loop.run_until_complete()
-        # self.loop.
-        # asyncio.wait_for()
-        # self.loop.stop()
         self.root.destroy()
 
     def mainloop(self):
         while True:
             self.root.update()
 
-            # while self.queue.qsize():
-            if not self.queue.empty():
-                ev = self.queue.get(False)
+            if not self._done_queue.empty():
+                ev = self._done_queue.get(False)
                 self._ref[ev[0]]() # TODO: Make this something thats not just a dict
 
             if self.statusunclean:
